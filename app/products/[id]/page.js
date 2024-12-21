@@ -110,7 +110,7 @@ const ProductPage = () => {
 
         <div>
           <p className="text-gray-600 mb-4">{product.description}</p>
-          <p className="text-2xl font-bold text-gray-800 mb-4">${product.price}</p>
+          <p className="text-2xl font-bold text-gray-800 mb-4">₹{product.price}</p>
           <button className="px-4 py-2 text-white rounded-md hover:bg-green-700 transition">
             <WhatsAppButton />
           </button>

@@ -79,7 +79,7 @@ const ProductsPage = () => {
                 <h3 className="text-xl font-semibold text-gray-800">{product.name}</h3>
                 <p className="text-gray-600 mt-2 line-clamp-2">{product.description}</p> {/* Ensure consistent description length */}
                 <div className="flex justify-between items-center mt-4">
-                  <span className="text-xl font-bold text-gray-800">${product.price}</span>
+                  <span className="text-xl font-bold text-gray-800">₹{product.price}</span>
                 </div>
               </div>
             </div>
