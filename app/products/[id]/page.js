@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation'; // Import useParams for dynamic routes
-import WhatsAppButton from '@/app/components/WhatsappButton';
 
 const ProductPage = () => {
   const [product, setProduct] = useState(null); // State to hold product data
@@ -40,6 +39,13 @@ const ProductPage = () => {
 
     fetchProduct();
   }, [id]);
+
+  // Generate WhatsApp Message Link
+  const generateWhatsAppLink = () => {
+    const productLink = `${window.location.origin}/products/${id}`; // Construct product link
+    const message = `Hi, I'm interested in this product: ${product.name}.\nCheck it here: ${productLink}`;
+    return `https://wa.me/?text=${encodeURIComponent(message)}`; // WhatsApp URL with message
+  };
 
   // Handle image navigation
   const handleImageNavigation = (direction) => {
@@ -87,8 +93,7 @@ const ProductPage = () => {
           )}
         </div>
 
-        {/* Arrows outside the image container, closer to the container edges */}
-        {/* Left Arrow */}
+        {/* Arrows outside the image container */}
         <div className="absolute top-1/2 left-5 transform -translate-y-1/2 md:left-[-50px]">
           <button
             onClick={() => handleImageNavigation('prev')}
@@ -97,8 +102,6 @@ const ProductPage = () => {
             &#60;
           </button>
         </div>
-
-        {/* Right Arrow */}
         <div className="absolute top-1/2 right-5 transform -translate-y-1/2 md:right-[410px] md:w-1/12">
           <button
             onClick={() => handleImageNavigation('next')}
@@ -111,9 +114,14 @@ const ProductPage = () => {
         <div>
           <p className="text-gray-600 mb-4">{product.description}</p>
           <p className="text-2xl font-bold text-gray-800 mb-4">₹{product.price}</p>
-          <button className="px-4 py-2 text-white rounded-md hover:bg-green-700 transition">
-            <WhatsAppButton />
-          </button>
+          <a
+            href={generateWhatsAppLink()} // WhatsApp link
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+          >
+            Click Here to Buy on WhatsApp
+          </a>
         </div>
       </div>
     </div>

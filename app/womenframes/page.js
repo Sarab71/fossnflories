@@ -61,7 +61,7 @@ const Sunglasses = () => {
                 className="w-full h-48 object-cover rounded-md mb-2"
               />
               <h2 className="text-lg font-semibold">{product.name}</h2>
-              <p className="text-gray-600">{product.category}</p>
+              <p className="text-gray-600 mb-4">{product.description}</p>
               <p className="text-blue-500 font-bold">₹{product.price}</p>
             </div>
           ))
