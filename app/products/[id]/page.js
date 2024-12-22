@@ -114,9 +114,6 @@ const ProductPage = () => {
 
         <div>
           <p className="text-gray-600 mb-4">{product.description}</p>
-          <p className="text-2xl font-bold text-gray-800 mb-4">
-            ₹{product.price}
-          </p>
           <a
             href={generateWhatsAppLink()} // WhatsApp link
             target="_blank"
