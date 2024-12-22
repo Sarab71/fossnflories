@@ -87,7 +87,7 @@ const ProductPage = () => {
         <div className="relative">
           {product.images && product.images.length > 0 && (
             <img
-              src={product.images[currentImageIndex]} // Display the current image
+              src={product.images[currentImageIndex]?.url} // Display the current image
               alt={product.name}
               className="w-full h-[350px] md:h-[500px] object-cover rounded-lg transition-all duration-300"
             />

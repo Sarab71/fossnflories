@@ -71,7 +71,7 @@ const ProductsPage = () => {
               }} // Allow navigation with keyboard
             >
               <img
-                src={product.images[0]} // Assuming the first image in the array
+                src={product.images[0]?.url} // Assuming the first image in the array
                 alt={product.name}
                 className="w-full h-48 object-cover" // Adjusted image height
               />

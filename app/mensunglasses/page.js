@@ -56,7 +56,7 @@ const Sunglasses = () => {
               }} // Allow navigation with keyboard
             >
               <img
-                src={product.images[0] || '/placeholder.jpg'}
+                src={product.images[0]?.url || '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-48 object-cover rounded-md mb-2"
               />

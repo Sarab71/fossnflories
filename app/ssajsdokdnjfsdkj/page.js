@@ -4,7 +4,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const apiUrl = "/api/products";
-
 const categoriesList = [
   "MenFrames",
   "MenSunglasses",
@@ -23,10 +22,11 @@ const AdminPage = () => {
     price: 0,
     description: "",
     modelNumber: "",
-    images: "",
+    images: [],
     category: [],
   });
 
+  const [imagePreviews, setImagePreviews] = useState([]); // State to hold the image previews
   const [editProduct, setEditProduct] = useState(null);
 
   useEffect(() => {
@@ -45,16 +45,83 @@ const AdminPage = () => {
     fetchProducts();
   }, []);
 
-  const handleCreate = async () => {
-    // Ensure images are split into an array properly and trimmed
-    const formattedImages = newProduct.images
-      ? newProduct.images
-          .split(",")  // Split by commas
-          .map((img) => img.trim())  // Trim any extra spaces
-          .filter((img) => img !== "")  // Remove empty strings
-      : []; // Default to an empty array if no images
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
 
-    // Ensure category is a valid array
+      if (!res.ok) {
+        throw new Error("Failed to delete product");
+      }
+
+      setProducts(products.filter((product) => product._id !== id));
+      toast.success("Product deleted successfully");
+    } catch (error) {
+      console.error("Error deleting product:", error.message);
+      toast.error(`Failed to delete product: ${error.message}`);
+    }
+  };
+
+  const handleEdit = (id) => {
+    const productToEdit = products.find((product) => product._id === id);
+
+    if (!productToEdit) {
+      console.error("Product not found with ID:", id);
+      return;
+    }
+
+    setNewProduct({
+      name: productToEdit.name || "",
+      price: productToEdit.price || "",
+      description: productToEdit.description || "",
+      modelNumber: productToEdit.modelNumber || "",
+      images: Array.isArray(productToEdit.images)
+        ? productToEdit.images.join(", ") // If images are already an array, join them into a comma-separated string for editing
+        : "", // Safe check for images
+      category: productToEdit.category || [],
+    });
+
+    setImagePreviews(productToEdit.images.map((image) => image.url)); // Set preview URLs for images
+    setEditProduct(productToEdit._id); // Set the product being edited
+  };
+
+  // Function to handle image upload to Cloudinary
+  const uploadImagesToCloudinary = async (images) => {
+    try {
+      const uploadedImages = [];
+      for (const image of images) {
+        const formData = new FormData();
+        formData.append("file", image);
+        formData.append("upload_preset", "FossNFlories"); // Replace with your Cloudinary preset
+
+        const response = await fetch(
+          "https://api.cloudinary.com/v1_1/du9zrisyt/image/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+        if (result.secure_url) {
+          uploadedImages.push({
+            publicId: result.public_id,
+            url: result.secure_url,
+          });
+        }
+      }
+      return uploadedImages;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload images");
+      return [];
+    }
+  };
+
+  const handleCreate = async () => {
+    const formattedImages = newProduct.images.length
+      ? await uploadImagesToCloudinary(newProduct.images)
+      : [];
+
     const formattedCategory = Array.isArray(newProduct.category)
       ? newProduct.category
       : [];
@@ -65,7 +132,7 @@ const AdminPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...newProduct,
-          images: formattedImages,  // Pass the correct images array
+          images: formattedImages,
           category: formattedCategory,
         }),
       });
@@ -78,9 +145,10 @@ const AdminPage = () => {
         price: 0,
         description: "",
         modelNumber: "",
-        images: "",
+        images: [],
         category: [],
       });
+      setImagePreviews([]); // Clear previews after successful creation
       toast.success("Product added successfully!");
 
       // After product is added, fetch the updated products list
@@ -102,64 +170,37 @@ const AdminPage = () => {
     }
   };
 
-
-  const handleEdit = (id) => {
-    const productToEdit = products.find((product) => product._id === id);
-  
-    if (!productToEdit) {
-      console.error("Product not found with ID:", id);
-      return;
-    }
-  
-    setNewProduct({
-      name: productToEdit.name || "",
-      price: productToEdit.price || "",
-      description: productToEdit.description || "",
-      modelNumber: productToEdit.modelNumber || "",
-      images: Array.isArray(productToEdit.images)
-        ? productToEdit.images.join(", ")  // If images are already an array, join them into a comma-separated string for editing
-        : "", // Safe check for images
-      category: productToEdit.category || [],
-    });
-  
-    setEditProduct(productToEdit._id); // Set the product being edited
-  };
-  
-
   const handleUpdate = async () => {
-    // Ensure price is a valid number and round it to 2 decimal places
     const validPrice = parseFloat(newProduct.price);
-  
-    // Validate price, make sure it's a positive number and not NaN
     if (isNaN(validPrice) || validPrice <= 0) {
       toast.error("Please enter a valid price.");
       return;
     }
-  
+
     setNewProduct({ ...newProduct, price: validPrice });
-  
-    // Ensure images are in array format
-    const updatedImages = newProduct.images
-      .split(",")
-      .map((image) => image.trim()) // Split string by commas and remove extra spaces around the image URLs
-      .filter((image) => image !== ""); // Filter out any empty strings
-  
+
+    const updatedImages = await uploadImagesToCloudinary(newProduct.images);
+    const formattedCategory = Array.isArray(newProduct.category)
+      ? newProduct.category
+      : [];
+
     try {
       const res = await fetch(`/api/products?id=${editProduct}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          ...newProduct, 
+        body: JSON.stringify({
+          ...newProduct,
           price: validPrice,
-          images: updatedImages, // Send images as an array
+          images: updatedImages,
+          category: formattedCategory,
         }),
       });
-  
+
       const responseData = await res.json();
       if (!res.ok) {
         throw new Error(responseData.error || "Failed to update product");
       }
-  
+
       // After updating the product, fetch the updated products list
       const fetchUpdatedProducts = async () => {
         try {
@@ -171,30 +212,13 @@ const AdminPage = () => {
           toast.error("Failed to load updated products");
         }
       };
-  
-      fetchUpdatedProducts(); // Update the product list
+
+      fetchUpdatedProducts();
       toast.success("Product updated successfully!");
-      setEditProduct(null); // Clear edit state after successful update
+      setEditProduct(null);
     } catch (error) {
       console.error("Error updating product:", error.message);
       toast.error(`Error updating product: ${error.message}`);
-    }
-  };
-  
-
-  const handleDelete = async (id) => {
-    try {
-      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
-
-      if (!res.ok) {
-        throw new Error("Failed to delete product");
-      }
-
-      setProducts(products.filter((product) => product._id !== id));
-      toast.success("Product deleted successfully");
-    } catch (error) {
-      console.error("Error deleting product:", error.message);
-      toast.error(`Failed to delete product: ${error.message}`);
     }
   };
 
@@ -205,12 +229,20 @@ const AdminPage = () => {
     setNewProduct({ ...newProduct, category: selectedCategories });
   };
 
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setNewProduct({ ...newProduct, images: files });
+
+    // Update image previews
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
   return (
     <div className="container p-6 mx-auto">
       <ToastContainer position="top-right" autoClose={3000} />
       <h1 className="text-3xl font-semibold mb-6">Admin Panel</h1>
 
-      {/* Create or Update Product Form */}
       <div className="mb-8">
         <h2 className="text-2xl mb-4">
           {editProduct ? "Update Product" : "Add New Product"}
@@ -238,7 +270,6 @@ const AdminPage = () => {
           onWheel={(e) => e.target.blur()} // Prevent scroll effect
           className="border p-3 mb-4 w-full"
         />
-
         <textarea
           placeholder="Description"
           value={newProduct.description}
@@ -256,66 +287,66 @@ const AdminPage = () => {
           }
           className="border p-3 mb-4 w-full"
         />
-        <input
-          type="text"
-          placeholder="Image URLs (comma separated)"
-          value={newProduct.images}
-          onChange={(e) =>
-            setNewProduct({ ...newProduct, images: e.target.value })
-          }
-          className="border p-3 mb-4 w-full"
-        />
 
-        {/* Multi-Select Dropdown for Categories */}
         <div className="mb-4">
-          <label className="block text-lg mb-2">Select Categories:</label>
-          <div className="flex flex-wrap gap-2">
-            {categoriesList.map((category) => (
-              <label key={category} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={newProduct.category.includes(category)}
-                  onChange={() => handleCategoryChange(category)}
+          <input type="file" multiple onChange={handleImageChange} />
+        </div>
+
+        <div className="mb-4">
+          {imagePreviews.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {imagePreviews.map((preview, index) => (
+                <img
+                  key={index}
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-32 object-cover"
                 />
-                <span>{category}</span>
-              </label>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4">
+          {categoriesList.map((category) => (
+            <label key={category} className="block">
+              <input
+                type="checkbox"
+                checked={newProduct.category.includes(category)}
+                onChange={() => handleCategoryChange(category)}
+              />
+              {category}
+            </label>
+          ))}
         </div>
 
         <button
           onClick={editProduct ? handleUpdate : handleCreate}
-          className="bg-blue-500 text-white p-3 rounded w-full"
+          className="bg-blue-500 text-white py-2 px-4"
         >
-          {editProduct ? "Update Product" : "Create Product"}
+          {editProduct ? "Update Product" : "Add Product"}
         </button>
       </div>
 
-      {/* Product List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.length === 0 ? (
-          <p>No products available</p>
-        ) : (
-          products.map((product) => (
-            <div key={product._id} className="border p-4">
-              <h3 className="text-xl mb-2">{product.name}</h3>
-              <p className="text-gray-700 mb-2">{product.description}</p>
-              <p className="font-bold">₹{product.price}</p>
-              <button
-                onClick={() => handleEdit(product._id)}
-                className="bg-yellow-500 text-white p-2 rounded mt-4 mr-2"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(product._id)}
-                className="bg-red-500 text-white p-2 rounded mt-4"
-              >
-                Delete
-              </button>
-            </div>
-          ))
-        )}
+      <div>
+        <h2 className="text-2xl mb-4">All Products</h2>
+        {products.map((product) => (
+          <div key={product._id} className="border p-4 mb-4">
+            <h3 className="text-xl font-semibold">{product.name}</h3>
+            <button
+              onClick={() => handleEdit(product._id)}
+              className="bg-yellow-500 text-white py-2 px-4 mr-2"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(product._id)}
+              className="bg-red-500 text-white py-2 px-4"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
