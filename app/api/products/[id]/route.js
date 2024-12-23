@@ -2,17 +2,19 @@ import Product from "@/app/models/product";
 import connectToDatabase from "@/lib/mongodb";
 
 
-export async function GET(req, { params }) {
-  await connectToDatabase(); // Ensure the database is connected
-
-  const { id } = params; // Extract product ID from URL params
-
+export const GET = async (req, { params }) => {
   try {
-    const product = await Product.findById(id); // Fetch product by ID
+    await connectToDatabase(); // Ensure the database is connected
+
+    // Await the `params` to destructure its properties
+    const { id } = await params;
+
+    // Fetch the product by ID
+    const product = await Product.findById(id);
 
     if (!product) {
       return new Response(
-        JSON.stringify({ success: false, message: "Product not found" }),
+        JSON.stringify({ success: false, message: 'Product not found.' }),
         { status: 404 }
       );
     }
@@ -24,8 +26,8 @@ export async function GET(req, { params }) {
   } catch (error) {
     console.error("Error fetching product:", error);
     return new Response(
-      JSON.stringify({ success: false, message: "Server Error" }),
+      JSON.stringify({ success: false, message: 'Error fetching product', error: error.message }),
       { status: 500 }
     );
   }
-}
+};
