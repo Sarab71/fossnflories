@@ -31,8 +31,6 @@ export const POST = async (req) => {
   try {
     const { name, price, description, modelNumber, images, category } = await req.json();
 
-    console.log('Received data:', { name, price, description, modelNumber, images, category });
-
     // Ensure images are an array and validate the format
     if (!Array.isArray(images) || !images.every(image => image.publicId && image.url)) {
       return new Response(
@@ -88,7 +86,7 @@ export const GET = async () => {
 
 export const PUT = async (req) => {
   try {
-    const url = new URL(req.url); 
+    const url = new URL(req.url);
     const id = url.searchParams.get('id'); // Extract 'id' from query params
 
     if (!id) {
@@ -116,25 +114,37 @@ export const PUT = async (req) => {
     // Ensure database connection
     await connectToDatabase();
 
-    // Update the product in MongoDB
-    const result = await Product.findByIdAndUpdate(
-      id,
-      { name, price, description, modelNumber, images, category }, // Include modelNumber and images in the update
-      { new: true } // Return the updated document
-    );
+    // Find the product by ID
+    const existingProduct = await Product.findById(id);
 
-    if (!result) {
+    if (!existingProduct) {
       return new Response(
         JSON.stringify({ success: false, message: 'Product not found' }),
         { status: 404 }
       );
     }
 
+    // Delete old images from Cloudinary
+    if (existingProduct.images && existingProduct.images.length > 0) {
+      for (const image of existingProduct.images) {
+        if (image.publicId) {
+          await cloudinary.uploader.destroy(image.publicId); // Delete image from Cloudinary
+        }
+      }
+    }
+
+    // Update the product with new details
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { name, price, description, modelNumber, images, category }, // Include modelNumber and images in the update
+      { new: true } // Return the updated document
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Product updated successfully',
-        data: result,
+        data: updatedProduct,
       }),
       { status: 200 }
     );
@@ -159,15 +169,27 @@ export const DELETE = async (req) => {
 
     await connectToDatabase(); // Ensure database connection
 
-    // Delete the product from MongoDB
-    const result = await Product.findByIdAndDelete(id);
+    // Find the product to get the publicIds of all images
+    const product = await Product.findById(id);
 
-    if (!result) {
+    if (!product) {
       return new Response(JSON.stringify({ success: false, message: 'Product not found' }), { status: 404 });
     }
 
+    // Delete each image from Cloudinary
+    if (product.images && product.images.length > 0) {
+      for (const image of product.images) {
+        if (image.publicId) {
+          await cloudinary.uploader.destroy(image.publicId);
+        }
+      }
+    }
+
+    // Delete the product from MongoDB
+    await Product.findByIdAndDelete(id);
+
     return new Response(
-      JSON.stringify({ success: true, message: 'Product deleted successfully', data: result }),
+      JSON.stringify({ success: true, message: 'Product and associated images deleted successfully' }),
       { status: 200 }
     );
   } catch (error) {
@@ -178,4 +200,5 @@ export const DELETE = async (req) => {
     );
   }
 };
+
 
