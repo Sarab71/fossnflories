@@ -51,7 +51,7 @@ const Header = () => {
 
         {/* Menu Items */}
         <div
-          className={`hidden absolute md:static bg-gray-800 top-0 left-0 w-full md:w-auto md:flex items-center z-10 transition-transform transform ${menuOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`absolute md:static bg-gray-800 top-0 left-0 w-full md:w-auto md:flex items-center z-10 transition-transform transform ${menuOpen ? 'translate-x-0' : '-translate-x-full'
             } md:translate-x-0`}
         >
           <ul className="flex flex-col md:flex-row md:space-x-6 mt-16 md:mt-0">
