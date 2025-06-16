@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 const apiUrl = "/api/products";
 const categoriesList = [
   "MenFrames",
@@ -28,6 +29,16 @@ const AdminPage = () => {
 
   const [imagePreviews, setImagePreviews] = useState([]); // State to hold the image previews
   const [editProduct, setEditProduct] = useState(null);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+  if (status === "loading") return; // Wait for session to load
+  if (!session || session.user?.email !== "singhsarabnoor@gmail.com") {
+    router.push("/"); // Redirect if not authorized
+  }
+}, [session, status]);
+
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -240,7 +251,6 @@ const AdminPage = () => {
 
   return (
     <div className="container p-6 mx-auto">
-      <ToastContainer position="top-right" autoClose={3000} />
       <h1 className="text-3xl font-semibold mb-6">Admin Panel</h1>
 
       <div className="mb-8">
